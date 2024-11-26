@@ -12,7 +12,7 @@ CASHFREE_APP_ID = '73553954db925af2b456a26e07935537'
 CASHFREE_SECRET_KEY = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'
 
 async def start(update: Update, context: CallbackContext):
-    await update.message.reply("Hello! Welcome to the payment bot. Type /pay to generate a payment link.")
+    await update.message.reply_text("Hello! Welcome to the payment bot. Type /pay to generate a payment link.")
 
 async def generate_payment_link(update: Update, context: CallbackContext):
     # Define the amount and other payment link parameters
@@ -39,9 +39,9 @@ async def generate_payment_link(update: Update, context: CallbackContext):
 
     if result.get("status") == "OK":
         payment_link = result["payment_link"]
-        await update.message.reply(f"Your payment link is: {payment_link}")
+        await update.message.reply_text(f"Your payment link is: {payment_link}")
     else:
-        await update.message.reply(f"Error generating payment link: {result.get('message', 'Unknown error')}")
+        await update.message.reply_text(f"Error generating payment link: {result.get('message', 'Unknown error')}")
 
 def main():
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
