@@ -1,67 +1,63 @@
-import os
-import requests
-from flask import Flask
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
-import threading
+from telegram.ext import Updater, CommandHandler, CallbackContext
+import requests
 
-# Flask setup
-app = Flask(__name__)
+# Cashfree Credentials
+CASHFREE_APP_ID = "73553954db925af2b456a26e07935537"
+CASHFREE_SECRET_KEY = "cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c"
 
-# Telegram Bot Token
-TELEGRAM_BOT_TOKEN = '7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0'
-
-# Cashfree Payment API Details
-CASHFREE_APP_ID = '73553954db925af2b456a26e07935537'
-CASHFREE_SECRET_KEY = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'
-
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Hello! Welcome to the payment bot. Type /pay to generate a payment link.")
-
-async def generate_payment_link(update: Update, context: CallbackContext):
-    amount = 2  # INR
-    expiry_minutes = 20  # Link expiry time in minutes
-
-    url = "https://api.cashfree.com/api/v2/cashpay/links"
+# Function to Generate Payment Link
+def generate_payment_link(order_id, amount, email, phone):
+    url = "https://api.cashfree.com/pg/orders"
     headers = {
-        "x-api-key": CASHFREE_SECRET_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
     }
-    data = {
+    payload = {
+        "order_id": order_id,
         "order_amount": amount,
         "order_currency": "INR",
-        "order_note": "Test Payment",
-        "notify_url": "https://154.12.228.186/notify",
-        "redirect_url": "https://154.12.228.186/redirect",
-        "expire_time": expiry_minutes * 60  # Expiry in seconds
+        "customer_details": {
+            "customer_id": order_id,
+            "customer_email": email,
+            "customer_phone": phone,
+        }
     }
-
-    response = requests.post(url, headers=headers, json=data)
-    result = response.json()
-
-    if result.get("status") == "OK":
-        payment_link = result["payment_link"]
-        await update.message.reply_text(f"Your payment link is: {payment_link}")
+    response = requests.post(url, json=payload, headers=headers)
+    if response.status_code == 200:
+        return response.json().get("payment_link")
     else:
-        await update.message.reply_text(f"Error generating payment link: {result.get('message', 'Unknown error')}")
+        print("Error:", response.json())  # Debugging
+        return None
 
-def start_telegram_bot():
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("pay", generate_payment_link))
-    application.run_polling()
+# Telegram Bot Commands
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("Welcome! Use /pay <amount> to make a payment.")
 
-@app.route('/')
-def home():
-    return "Flask server is running!"
+def pay(update: Update, context: CallbackContext):
+    try:
+        # Parse amount from user message
+        amount = float(context.args[0])
+        user_id = update.message.from_user.id
+        email = "user@example.com"  # Replace with dynamic user email if needed
+        phone = "9876543210"  # Replace with dynamic user phone if needed
+        order_id = f"Order{user_id}"  # Unique order ID per user
 
-def run_flask():
-    app.run(host='0.0.0.0', port=5000)
+        # Generate Payment Link
+        payment_link = generate_payment_link(order_id, amount, email, phone)
+        if payment_link:
+            update.message.reply_text(f"Pay using this link: {payment_link}")
+        else:
+            update.message.reply_text("Failed to generate payment link. Try again!")
+    except (IndexError, ValueError):
+        update.message.reply_text("Usage: /pay <amount>")
 
-def start_services():
-    # Run both Flask and Telegram Bot in separate threads
-    threading.Thread(target=run_flask).start()
-    threading.Thread(target=start_telegram_bot).start()
+# Bot Setup
+updater = Updater("7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI")
+updater.dispatcher.add_handler(CommandHandler("start", start))
+updater.dispatcher.add_handler(CommandHandler("pay", pay))
 
-if __name__ == "__main__":
-    start_services()
+# Start Bot
+updater.start_polling()
+updater.idle()
