@@ -12,12 +12,25 @@ ENVIRONMENT = "PROD"  # Use "TEST" for sandbox environment
 # Telegram Bot Token
 BOT_TOKEN = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
 
+# Webhook URL
+WEBHOOK_URL = "http://154.12.228.186:5000/payment-status"
+
+# Function to send payment status to webhook
+def send_payment_status_to_webhook(status: str):
+    payload = {"status": status}
+    headers = {'Content-Type': 'application/json'}
+
+    response = requests.post(WEBHOOK_URL, json=payload, headers=headers)
+    if response.status_code == 200:
+        print("Webhook called successfully")
+    else:
+        print(f"Error in calling webhook: {response.text}")
+
 async def start(update: Update, context: CallbackContext) -> None:
     """Handles /start command."""
     await update.message.reply_text(
         "Welcome! Use /pay to generate a payment link for INR 2."
     )
-
 
 async def generate_payment_link(update: Update, context: CallbackContext) -> None:
     """Generates a Cashfree payment link."""
@@ -61,8 +74,12 @@ async def generate_payment_link(update: Update, context: CallbackContext) -> Non
             await update.message.reply_text(
                 f"Here is your payment link (valid for 20 minutes):\n{payment_link}"
             )
+            
+            # Send payment status to webhook
+            send_payment_status_to_webhook("SUCCESS")
         else:
             await update.message.reply_text(f"Error: {response.text}")
+            send_payment_status_to_webhook("FAILED")
     except Exception as e:
         await update.message.reply_text(f"Error: {str(e)}")
 
