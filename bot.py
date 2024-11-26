@@ -10,6 +10,7 @@ TELEGRAM_BOT_TOKEN = '7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0'
 # Cashfree Payment API Details
 CASHFREE_APP_ID = '73553954db925af2b456a26e07935537'
 CASHFREE_SECRET_KEY = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'
+CASHFREE_CLIENT_SECRET = 'your_client_secret'  # Add your actual client secret here
 
 async def start(update: Update, context: CallbackContext):
     await update.message.reply_text("Hello! Welcome to the payment bot. Type /pay to generate a payment link.")
@@ -23,6 +24,8 @@ async def generate_payment_link(update: Update, context: CallbackContext):
     url = "https://api.cashfree.com/api/v2/cashpay/links"
     headers = {
         "x-api-key": CASHFREE_SECRET_KEY,
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_CLIENT_SECRET,  # Adding client secret here
         "Content-Type": "application/json"
     }
     data = {
