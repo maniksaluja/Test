@@ -80,20 +80,14 @@ def webhook():
             update.message.reply_text(f"Error: {e}")
     return "OK"
 
-# Start the Flask app to listen for requests
+# Root route to check if server is up
+@app.route('/')
+def hello_world():
+    return 'Telegram Bot Webhook is Set Successfully!'
+
 if __name__ == "__main__":
     # Set webhook with Telegram bot
     start_webhook()
 
     # Run the Flask app
     app.run(host='0.0.0.0', port=5000)
-
-@app.route('/')
-def hello_world():
-    return 'Telegram Bot Webhook is Set Successfully!'
-
-# If you are setting up a webhook
-@app.route(f'/{TELEGRAM_API_KEY}', methods=['POST'])
-def webhook():
-    # Handle /pay command here
-    return "OK"
