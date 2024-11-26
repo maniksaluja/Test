@@ -1,8 +1,13 @@
 import os
 import requests
+from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
+import threading
 import asyncio
+
+# Flask setup
+app = Flask(__name__)
 
 # Telegram Bot Token
 TELEGRAM_BOT_TOKEN = '7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0'
@@ -10,30 +15,25 @@ TELEGRAM_BOT_TOKEN = '7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0'
 # Cashfree Payment API Details
 CASHFREE_APP_ID = '73553954db925af2b456a26e07935537'
 CASHFREE_SECRET_KEY = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'
-CASHFREE_CLIENT_SECRET = 'your_client_secret'  # Add your actual client secret here
 
 async def start(update: Update, context: CallbackContext):
     await update.message.reply_text("Hello! Welcome to the payment bot. Type /pay to generate a payment link.")
 
 async def generate_payment_link(update: Update, context: CallbackContext):
-    # Define the amount and other payment link parameters
     amount = 2  # INR
     expiry_minutes = 20  # Link expiry time in minutes
-    
-    # Create the payment link via Cashfree API
+
     url = "https://api.cashfree.com/api/v2/cashpay/links"
     headers = {
         "x-api-key": CASHFREE_SECRET_KEY,
-        "x-client-id": CASHFREE_APP_ID,
-        "x-client-secret": CASHFREE_CLIENT_SECRET,  # Adding client secret here
         "Content-Type": "application/json"
     }
     data = {
         "order_amount": amount,
         "order_currency": "INR",
         "order_note": "Test Payment",
-        "notify_url": "https://yourdomain.com/notify",
-        "redirect_url": "https://yourdomain.com/redirect",
+        "notify_url": "https://154.12.228.186/notify",
+        "redirect_url": "https://154.12.228.186/redirect",
         "expire_time": expiry_minutes * 60  # Expiry in seconds
     }
 
@@ -46,15 +46,23 @@ async def generate_payment_link(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text(f"Error generating payment link: {result.get('message', 'Unknown error')}")
 
-def main():
+def start_telegram_bot():
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-
-    # Add command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("pay", generate_payment_link))
-
-    # Run the bot
     application.run_polling()
 
+@app.route('/')
+def home():
+    return "Flask server is running!"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=5000)
+
+def start_services():
+    # Run both Flask and Telegram Bot in separate threads
+    threading.Thread(target=run_flask).start()
+    threading.Thread(target=start_telegram_bot).start()
+
 if __name__ == "__main__":
-    main()
+    start_services()
