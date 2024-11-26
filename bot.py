@@ -1,3 +1,4 @@
+import asyncio
 from flask import Flask, request, jsonify
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
@@ -18,7 +19,6 @@ app = Flask(__name__)
 def webhook():
     data = request.json
     print("Webhook Data Received:", data)  # For debugging
-    # Respond to Cashfree webhook
     return jsonify({"status": "success"}), 200
 
 # Function to Generate Payment Link
@@ -39,11 +39,15 @@ def generate_payment_link(order_id, amount, email, phone):
             "customer_phone": phone,
         }
     }
-    response = requests.post(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        return response.json().get("payment_link")
-    else:
-        print("Error:", response.json())  # Debugging
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json().get("payment_link")
+        else:
+            print(f"Error: {response.json()}")  # Debugging
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
         return None
 
 # Telegram Bot Commands
@@ -66,7 +70,7 @@ async def pay(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         await update.message.reply_text("Usage: /pay <amount>")
 
-# Start Telegram Bot in a Thread
+# Start Telegram Bot in a Separate Thread
 def start_telegram_bot():
     application = Application.builder().token(BOT_TOKEN).build()
     
@@ -76,11 +80,15 @@ def start_telegram_bot():
     
     application.run_polling()
 
-# Main Script
-if __name__ == "__main__":
+# Main Function to Start the Flask and Telegram Bot
+def main():
     # Run Telegram bot in a separate thread
     bot_thread = threading.Thread(target=start_telegram_bot)
     bot_thread.start()
 
     # Run Flask app for webhook
     app.run(host="0.0.0.0", port=5000)
+
+# Run in async loop
+if __name__ == "__main__":
+    asyncio.run(main())
