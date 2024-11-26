@@ -1,11 +1,12 @@
 import asyncio
 from flask import Flask, request, jsonify
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telethon import TelegramClient, events
 import requests
 import threading
 
 # Telegram Bot Token
+API_ID = 'your_api_id'  # You need to get your own API ID and API Hash
+API_HASH = 'your_api_hash'
 BOT_TOKEN = "7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI"
 
 # Cashfree Credentials
@@ -50,45 +51,50 @@ def generate_payment_link(order_id, amount, email, phone):
         print(f"Request failed: {e}")
         return None
 
-# Telegram Bot Commands
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Welcome to the bot! Use /pay <amount> to create a payment link.")
+# Telethon Bot Commands
+async def start(event):
+    await event.respond("Welcome to the bot! Use /pay <amount> to create a payment link.")
 
-async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def pay(event):
     try:
-        amount = float(context.args[0])
-        user_id = update.message.from_user.id
+        amount = float(event.pattern_match.group(1))
+        user_id = event.sender_id
         email = "user@example.com"  # Default email, can be dynamic
         phone = "8708366003"  # Default phone, can be dynamic
         order_id = f"Order{user_id}"
 
         payment_link = generate_payment_link(order_id, amount, email, phone)
         if payment_link:
-            await update.message.reply_text(f"Pay using this link: {payment_link}")
+            await event.respond(f"Pay using this link: {payment_link}")
         else:
-            await update.message.reply_text("Failed to generate payment link. Try again!")
+            await event.respond("Failed to generate payment link. Try again!")
     except (IndexError, ValueError):
-        await update.message.reply_text("Usage: /pay <amount>")
+        await event.respond("Usage: /pay <amount>")
 
-# Start Telegram Bot in a Separate Thread
-def start_telegram_bot():
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("pay", pay))
-    
-    application.run_polling()
+# Start Telethon Client
+async def start_telethon_bot():
+    client = TelegramClient('bot', API_ID, API_HASH)
+    await client.start(bot_token=BOT_TOKEN)
 
-# Main Function to Start the Flask and Telegram Bot
+    @client.on(events.NewMessage(pattern='/start'))
+    async def handler_start(event):
+        await start(event)
+
+    @client.on(events.NewMessage(pattern=r'/pay (\d+\.?\d*)'))
+    async def handler_pay(event):
+        await pay(event)
+
+    await client.run_until_disconnected()
+
+# Run Flask and Telethon in Separate Threads
 def main():
-    # Run Telegram bot in a separate thread
-    bot_thread = threading.Thread(target=start_telegram_bot)
+    # Run Telethon bot in a separate thread
+    bot_thread = threading.Thread(target=lambda: asyncio.run(start_telethon_bot()))
     bot_thread.start()
 
     # Run Flask app for webhook
     app.run(host="0.0.0.0", port=5000)
 
-# Run in async loop
+# Run the main function
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
