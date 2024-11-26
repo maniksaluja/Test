@@ -2,14 +2,14 @@ import requests
 import json
 import time
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 
-# Cashfree API details (replace with actual details)
-CASHFREE_MERCHANT_ID = 'TEST1027828340bdc693b933350cd9b738287201'  # Your AppID
-CASHFREE_SECRET_KEY = 'cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13'  # Your Secret Key
+# Cashfree API details
+CASHFREE_MERCHANT_ID = 'TEST1027828340bdc693b933350cd9b738287201'
+CASHFREE_SECRET_KEY = 'cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13'
 
-# Telegram bot token (replace with actual token)
-TELEGRAM_BOT_TOKEN = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'  # Your Bot Token
+# Telegram bot token
+TELEGRAM_BOT_TOKEN = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
 
 # Cashfree payment link creation function
 def create_payment_link(amount, order_id):
@@ -29,7 +29,6 @@ def create_payment_link(amount, order_id):
             "customer_email": "customer@example.com",
             "customer_phone": "1234567890"
         },
-        "payment_link_notify_url": "http://your-website.com/payment-notification"  # Optional: for payment success/failure notifications
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -45,10 +44,10 @@ def create_payment_link(amount, order_id):
 
 # Function to handle the /pay command
 def pay(update: Update, context: CallbackContext):
-    # Generate new order ID (could be dynamic or random)
+    # Generate new order ID
     order_id = "order_" + str(int(time.time()))
     
-    # Generate payment link (replace with your amount)
+    # Generate payment link
     amount = 100  # Example amount in INR
     payment_link = create_payment_link(amount, order_id)
     
@@ -57,17 +56,15 @@ def pay(update: Update, context: CallbackContext):
 
 # Main function to run the bot
 def main():
-    # Initialize the Updater with your bot token
-    updater = Updater(token=TELEGRAM_BOT_TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    # Initialize the Application with your bot token
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     
     # Add /pay command handler
     pay_handler = CommandHandler('pay', pay)
-    dispatcher.add_handler(pay_handler)
+    application.add_handler(pay_handler)
     
     # Start the bot
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
