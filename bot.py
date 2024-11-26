@@ -1,40 +1,14 @@
 import requests
 import telegram
-from flask import Flask, request
 import logging
-
 import asyncio
+from flask import Flask, request
 from telegram import Bot
+import json
 
 # Replace with your actual Telegram API Key
 TELEGRAM_API_KEY = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
-
 bot = Bot(token=TELEGRAM_API_KEY)
-
-# Asynchronously set webhook
-async def set_webhook():
-    await bot.set_webhook(url=f'https://your-vps-ip-or-domain/{TELEGRAM_API_KEY}')
-   
-# Run the webhook function
-loop = asyncio.get_event_loop()
-loop.run_until_complete(set_webhook())
-
-# Flask server setup (if required)
-from flask import Flask, request
-app = Flask(__name__)
-
-@app.route('/')
-def hello_world():
-    return 'Telegram Bot Webhook is Set Successfully!'
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
-# Flask app setup
-app = Flask(__name__)
-
-# Telegram Bot API token
-TELEGRAM_API_KEY = "7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI"
-bot = telegram.Bot(token=TELEGRAM_API_KEY)
 
 # Cashfree API details
 CASHFREE_APP_ID = "TEST1027828340bdc693b933350cd9b738287201"
@@ -44,6 +18,17 @@ CASHFREE_API_URL = "https://test.cashfree.com/api/v2/cftoken/order"
 # Enable logging for debugging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Flask app setup
+app = Flask(__name__)
+
+# Asynchronously set webhook
+async def set_webhook():
+    await bot.set_webhook(url=f'https://your-vps-ip-or-domain/{TELEGRAM_API_KEY}')
+
+# Run the webhook function
+loop = asyncio.get_event_loop()
+loop.run_until_complete(set_webhook())
 
 # Function to create dynamic payment link
 def create_payment_link(amount):
