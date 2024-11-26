@@ -4,7 +4,6 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 import threading
-import asyncio
 
 # Flask setup
 app = Flask(__name__)
