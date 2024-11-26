@@ -53,3 +53,25 @@ def home():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "main.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/pay",
+      "dest": "main.py"
+    },
+    {
+      "src": "/",
+      "dest": "main.py"
+    }
+  ]
+}
