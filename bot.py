@@ -3,9 +3,10 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 import requests
 import json
+from datetime import datetime, timedelta
 
 # Replace with your bot token
-bot_token = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
+bot_token = "7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI"
 
 # Cashfree API credentials
 app_id = '73553954db925af2b456a26e07935537'
@@ -16,51 +17,27 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Generate token from Cashfree API
-def generate_token():
-    url = 'https://api.cashfree.com/api/v2/cftoken/order'
-
-    headers = {
-        'x-client-id': app_id,
-        'x-client-secret': secret_key,
-        'Content-Type': 'application/json'
-    }
-
-    payload = {
-        "order_id": "order12345",  # Unique order ID
-        "order_amount": 2.0,       # Amount in INR
-        "order_currency": "INR"
-    }
-
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code == 200:
-        return response.json()['cftoken']  # Return the token for creating payment links
-    else:
-        return f"Error generating token: {response.text}"
-
 # Create payment link using Cashfree API
 def create_payment_link(amount, order_id):
-    token = generate_token()
-    if "Error" in token:
-        return token  # Return the error message if token generation fails
-
     url = 'https://api.cashfree.com/api/v2/cft/payment-links'
 
     headers = {
         'x-client-id': app_id,
         'x-client-secret': secret_key,
-        'x-cftoken': token,  # Use the token here
         'Content-Type': 'application/json'
     }
+
+    # Set expiry time to 20 minutes from now
+    expiry_time = (datetime.utcnow() + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
 
     payload = {
         "order_id": order_id,
         "order_amount": amount,
         "order_currency": "INR",
-        "order_note": "Payment for order " + order_id,
+        "order_note": f"Payment for order {order_id}",
         "customer_email": "customer@example.com",
-        "customer_phone": "9999999999"
+        "customer_phone": "9999999999",
+        "expire_at": expiry_time  # Link expiry time
     }
 
     response = requests.post(url, headers=headers, json=payload)
