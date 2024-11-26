@@ -1,6 +1,6 @@
 import logging
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 import requests
 import json
 
@@ -44,7 +44,7 @@ def create_payment_link(amount, order_id):
         return f"Error generating payment link: {response.text}"
 
 # /pay command handler
-def pay(update: Update, context: CallbackContext) -> None:
+async def pay(update: Update, context: CallbackContext) -> None:
     order_id = "order12345"  # Generate a unique order ID or get from context
     amount = 2  # Amount in INR
 
@@ -52,21 +52,18 @@ def pay(update: Update, context: CallbackContext) -> None:
     payment_link = create_payment_link(amount, order_id)
 
     # Send the payment link to the user
-    update.message.reply_text(f"Here is your payment link: {payment_link}")
+    await update.message.reply_text(f"Here is your payment link: {payment_link}")
 
 # Main function to start the bot
 def main():
-    # Create the Updater and pass it your bot's token
-    updater = Updater(bot_token, use_context=True)
+    # Create the Application and pass it your bot's token
+    application = Application.builder().token(bot_token).build()
 
     # Register the /pay command handler
-    updater.dispatcher.add_handler(CommandHandler('pay', pay))
+    application.add_handler(CommandHandler('pay', pay))
 
     # Start the Bot
-    updater.start_polling()
-
-    # Run the bot until you send a signal to stop it
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
