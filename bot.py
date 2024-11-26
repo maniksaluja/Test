@@ -1,90 +1,35 @@
-import logging
+from flask import Flask, jsonify
 import requests
-from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
 
-# Replace with your bot token
-bot_token = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
+app = Flask(__name__)
 
-# Cashfree API credentials
 app_id = '73553954db925af2b456a26e07935537'
-secret_key = 'cfsk_ma_prod_a137f4b96e800e1356e2a4476b6bea75_82b9f03e'
+secret_key = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'
+url = 'https://api.cashfree.com/api/v2/cft/payment-links'
 
-# Set up logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)  # Changed to DEBUG for more detailed logs
-logger = logging.getLogger(__name__)
+headers = {
+    'x-client-id': app_id,
+    'x-client-secret': secret_key,
+    'Content-Type': 'application/json'
+}
 
-# Create payment link using Cashfree API
-def create_payment_link(amount, order_id):
-    url = 'https://api.cashfree.com/api/v2/cft/payment-links'
-
-    headers = {
-        'x-client-id': app_id,
-        'x-client-secret': secret_key,
-        'Content-Type': 'application/json'
-    }
-
+@app.route('/generate_payment_link')
+def generate_payment_link():
     payload = {
-        "order_id": order_id,
-        "order_amount": amount,
+        "order_id": "order12345",
+        "order_amount": 2,
         "order_currency": "INR",
-        "order_note": "Payment for order " + order_id,
-        "customer_email": "maniksaluja2004@gmail.com",  # Replace with actual user email
-        "customer_phone": "8709366003",  # Replace with actual user phone
-        "link_expiry_time": 1200  # Set expiration to 20 minutes (1200 seconds)
+        "order_note": "Payment for order order12345",
+        "customer_email": "maniksaluja2004@gmail.com",
+        "customer_phone": "8708366003",
+        "link_expiry_time": 1200
     }
-
-    logger.debug(f"Request Payload: {payload}")  # Log the request payload for debugging
-
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        
-        # Log the full response details for further debugging
-        logger.debug(f"Response Status Code: {response.status_code}")  # Log the status code
-        logger.debug(f"Response Text: {response.text}")  # Log the raw response text
-
-        if response.status_code == 200:
-            response_data = response.json()
-            logger.debug(f"Response JSON: {response_data}")  # Log the JSON response
-            payment_link = response_data.get('payment_link', None)
-            if payment_link:
-                return payment_link
-            else:
-                return f"Error: Payment link not found in response: {response_data}"
-        else:
-            # Log the error message and status code
-            response_data = response.json() if response.content else {}
-            error_message = response_data.get('message', 'Unknown error')
-            error_code = response_data.get('subCode', 'No subcode')
-            logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
-            return f"Error generating payment link: {error_message} (subCode: {error_code})"
-
-    except Exception as e:
-        logger.error(f"Exception occurred: {str(e)}")
-        return f"An error occurred: {str(e)}"
-
-# /pay command handler
-async def pay(update: Update, context: CallbackContext) -> None:
-    order_id = "order12345"  # Generate a unique order ID or get from context
-    amount = 2  # Amount in INR
-
-    # Generate payment link
-    payment_link = create_payment_link(amount, order_id)
-
-    # Send the payment link to the user
-    await update.message.reply_text(f"Here is your payment link: {payment_link}")
-
-# Main function to start the bot
-def main():
-    # Create the Application and pass it your bot's token
-    application = Application.builder().token(bot_token).build()
-
-    # Register the /pay command handler
-    application.add_handler(CommandHandler('pay', pay))
-
-    # Start the Bot
-    application.run_polling()
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code == 200:
+        response_data = response.json()
+        return jsonify({"payment_link": response_data.get('payment_link')})
+    else:
+        return jsonify({"error": response.json()})
 
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=5000)
