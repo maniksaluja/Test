@@ -1,83 +1,80 @@
-import logging
-import requests
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext
+from cashfree_pg import CashfreePG
+import datetime
 
-# Cashfree API credentials
-app_id = '73553954db925af2b456a26e07935537'  # Replace with your Client ID
-secret_key = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'  # Replace with your Secret Key
+# Cashfree Credentials
+APP_ID = "73553954db925af2b456a26e07935537"
+SECRET_KEY = "cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c"
+ENVIRONMENT = "PROD"  # Use "TEST" for sandbox environment
 
-# Set up logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+# Telegram Bot Token
+BOT_TOKEN = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
 
-# Create payment link using Cashfree API
-def create_payment_link(amount, order_id):
-    url = 'https://api.cashfree.com/api/v2/cft/payment-links'
+# Initialize Cashfree
+cashfree_pg = CashfreePG(app_id=APP_ID, secret_key=SECRET_KEY, environment=ENVIRONMENT)
 
-    headers = {
-        'x-client-id': app_id,
-        'x-client-secret': secret_key,
-        'Content-Type': 'application/json'
+
+def start(update: Update, context: CallbackContext) -> None:
+    """Handles /start command."""
+    update.message.reply_text(
+        "Welcome! Use /pay to generate a payment link for INR 2."
+    )
+
+
+def generate_payment_link(update: Update, context: CallbackContext) -> None:
+    """Generates a Cashfree payment link."""
+    user = update.message.from_user
+
+    # Customer Details
+    customer_details = {
+        "customer_id": str(user.id),
+        "customer_email": "maniksaluja2004@gmail.com",  # Static email for now
+        "customer_phone": "8708366003"  # Static phone number for now
     }
 
+    # Payment Link Details
+    order_id = f"ORDER_{user.id}_{int(datetime.datetime.now().timestamp())}"
+    order_amount = 2  # Fixed amount
+    expiry_time = (datetime.datetime.now() + datetime.timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%S+05:30")
+
+    # Request body
     payload = {
+        "customer_details": customer_details,
         "order_id": order_id,
-        "order_amount": amount,
+        "order_amount": order_amount,
         "order_currency": "INR",
-        "order_note": f"Payment for order {order_id}",
-        "customer_email": "maniksaluja2004@gmail.com",  # Replace with actual email
-        "customer_phone": "8708366003",  # Replace with actual phone
-        "link_expiry_time": 1200  # Expiry time (20 minutes)
+        "order_expiry_time": expiry_time
     }
 
-    # Log the request for debugging
-    logger.debug(f"Request Payload: {payload}")
-
-    # Send the request to Cashfree API
-    response = requests.post(url, headers=headers, json=payload)
-
-    # Log response for debugging
-    logger.debug(f"Response Status Code: {response.status_code}")
-    logger.debug(f"Response Text: {response.text}")
-
-    if response.status_code == 200:
-        response_data = response.json()
-        logger.debug(f"Response JSON: {response_data}")
-        payment_link = response_data.get('payment_link', None)
-        if payment_link:
-            return payment_link
+    # Create Payment Link
+    try:
+        response = cashfree_pg.payment_links.create(payload)
+        if response["status"] == "OK":
+            payment_link = response["data"]["link_url"]
+            update.message.reply_text(
+                f"Here is your payment link (valid for 20 minutes):\n{payment_link}"
+            )
         else:
-            return f"Error: Payment link not found in response: {response_data}"
-    else:
-        # Log detailed error information
-        error_message = response.json().get('message', 'Unknown error')
-        error_code = response.json().get('subCode', 'No subcode')
-        logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
-        return f"Error generating payment link: {error_message} (subCode: {error_code})"
+            update.message.reply_text(
+                f"Failed to generate payment link. Error: {response['message']}"
+            )
+    except Exception as e:
+        update.message.reply_text(f"Error: {str(e)}")
 
-# /pay command handler
-async def pay(update: Update, context: CallbackContext) -> None:
-    order_id = "order12345"  # Generate a unique order ID or get from context
-    amount = 2  # Amount in INR
 
-    # Generate payment link
-    payment_link = create_payment_link(amount, order_id)
+def main() -> None:
+    """Start the bot."""
+    updater = Updater(BOT_TOKEN)
 
-    # Send the payment link to the user
-    await update.message.reply_text(f"Here is your payment link: {payment_link}")
-
-# Main function to start the bot
-def main():
-    # Create the Application and pass it your bot's token
-    application = Application.builder().token("7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0").build()
-
-    # Register the /pay command handler
-    application.add_handler(CommandHandler('pay', pay))
+    # Register Handlers
+    updater.dispatcher.add_handler(CommandHandler("start", start))
+    updater.dispatcher.add_handler(CommandHandler("pay", generate_payment_link))
 
     # Start the Bot
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
