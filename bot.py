@@ -1,23 +1,34 @@
 import logging
+import random
+import string
+import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-import request
-# Production Cashfree credentials
+
+# Telegram bot token
+TELEGRAM_BOT_TOKEN = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
+
+# Cashfree API details
+BASE_URL = "https://api.cashfree.com/api/v2/cftoken/order"
 APP_ID = "73553954db925af2b456a26e07935537"
 SECRET_KEY = "cfsk_ma_prod_a137f4b96e800e1356e2a4476b6bea75_82b9f03e"
-BASE_URL = "https://api.cashfree.com/pg/orders"
 
-# Set up logging to see what's happening
+# Setting up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Function to generate the payment link
+# Generate a random order ID
+def generate_order_id():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
+# Function to create payment link
 def create_payment_link(order_id, amount):
     payload = {
         "order_id": order_id,
         "order_amount": amount,
         "order_currency": "INR",
+        "version": "2023-08-01",  # API version
         "customer_details": {
             "customer_id": "12345",
             "customer_email": "test@example.com",
@@ -38,26 +49,29 @@ def create_payment_link(order_id, amount):
     else:
         return f"Error: {response.text}"
 
-# Function to handle the /pay command
+# Command handler for /pay
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    order_id = "ORDER123"  # Replace with a unique order ID for each payment
-    amount = 2.0  # Amount in INR
+    user_id = update.message.from_user.id
+    amount = 2  # Payment amount (in INR)
     
-    # Generate the payment link
+    # Generate order ID
+    order_id = generate_order_id()
+    
+    # Call Cashfree API to create payment link
     payment_link = create_payment_link(order_id, amount)
-
-    # Send the payment link to the user
+    
+    # Send payment link to the user
     await update.message.reply_text(f"Here is your payment link: {payment_link}")
 
 # Main function to run the bot
 def main():
     # Initialize the Application with your bot token
-    application = Application.builder().token("7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI").build()
-
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    
     # Add /pay command handler
     pay_handler = CommandHandler('pay', pay)
     application.add_handler(pay_handler)
-
+    
     # Start the bot
     application.run_polling()
 
