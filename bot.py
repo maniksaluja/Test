@@ -1,7 +1,7 @@
 import threading
+import asyncio
 from flask import Flask, request
 import json
-import asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 import datetime
@@ -86,10 +86,12 @@ async def main():
     await application.run_polling()
 
 def run_flask():
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', port=5001, use_reloader=False)
 
 if __name__ == "__main__":
+    # Run Flask in a separate thread
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+
+    # Run Telegram bot with asyncio
+    asyncio.run(main())
