@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 import requests
 import threading
 
@@ -47,10 +47,10 @@ def generate_payment_link(order_id, amount, email, phone):
         return None
 
 # Telegram Bot Commands
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text("Welcome to the bot! Use /pay <amount> to create a payment link.")
+async def start(update: Update, context: CallbackContext):
+    await update.message.reply_text("Welcome to the bot! Use /pay <amount> to create a payment link.")
 
-def pay(update: Update, context: CallbackContext):
+async def pay(update: Update, context: CallbackContext):
     try:
         amount = float(context.args[0])
         user_id = update.message.from_user.id
@@ -60,19 +60,21 @@ def pay(update: Update, context: CallbackContext):
 
         payment_link = generate_payment_link(order_id, amount, email, phone)
         if payment_link:
-            update.message.reply_text(f"Pay using this link: {payment_link}")
+            await update.message.reply_text(f"Pay using this link: {payment_link}")
         else:
-            update.message.reply_text("Failed to generate payment link. Try again!")
+            await update.message.reply_text("Failed to generate payment link. Try again!")
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /pay <amount>")
+        await update.message.reply_text("Usage: /pay <amount>")
 
 # Start Telegram Bot in a Thread
 def start_telegram_bot():
-    updater = Updater(BOT_TOKEN)
-    updater.dispatcher.add_handler(CommandHandler("start", start))
-    updater.dispatcher.add_handler(CommandHandler("pay", pay))
-    updater.start_polling()
-    updater.idle()
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("pay", pay))
+    
+    application.run_polling()
 
 # Main Script
 if __name__ == "__main__":
