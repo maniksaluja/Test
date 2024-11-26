@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 # Flask app setup
 app = Flask(__name__)
 
-# Asynchronously set webhook
+# Function to set webhook asynchronously
 async def set_webhook():
     await bot.set_webhook(url=f'https://154.12.228.186/{TELEGRAM_API_KEY}')
 
 # Run the webhook function
-loop = asyncio.get_event_loop()
-loop.run_until_complete(set_webhook())
+def start_webhook():
+    asyncio.run(set_webhook())
 
 # Function to create dynamic payment link
 def create_payment_link(amount):
@@ -83,7 +83,7 @@ def webhook():
 # Start the Flask app to listen for requests
 if __name__ == "__main__":
     # Set webhook with Telegram bot
-    bot.set_webhook(url=f'https://154.12.228.186/{TELEGRAM_API_KEY}')
+    start_webhook()
 
     # Run the Flask app
     app.run(host='0.0.0.0', port=5000)
