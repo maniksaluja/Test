@@ -12,7 +12,7 @@ secret_key = 'cfsk_ma_prod_a137f4b96e800e1356e2a4476b6bea75_82b9f03e'
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)  # Changed to DEBUG for more detailed logs
 logger = logging.getLogger(__name__)
 
 # Create payment link using Cashfree API
@@ -30,21 +30,31 @@ def create_payment_link(amount, order_id):
         "order_amount": amount,
         "order_currency": "INR",
         "order_note": "Payment for order " + order_id,
-        "customer_email": "customer@example.com",
-        "customer_phone": "9999999999",
+        "customer_email": "maniksaluja2004@gmail.com",  # Replace with actual user email
+        "customer_phone": "8708366003",  # Replace with actual user phone
         "link_expiry_time": 1200  # Set expiration to 20 minutes (1200 seconds)
     }
 
+    logger.debug(f"Request Payload: {payload}")  # Log the request payload for debugging
+
     response = requests.post(url, headers=headers, json=payload)
 
+    logger.debug(f"Response Status Code: {response.status_code}")  # Log the status code
+    logger.debug(f"Response Text: {response.text}")  # Log the raw response text
+
     if response.status_code == 200:
-        payment_link = response.json().get('payment_link', '')
+        response_data = response.json()
+        logger.debug(f"Response JSON: {response_data}")  # Log the JSON response
+        payment_link = response_data.get('payment_link', None)
         if payment_link:
             return payment_link
         else:
-            return f"Error: {response.json()}"
+            return f"Error: Payment link not found in response: {response_data}"
     else:
-        return f"Error generating payment link: {response.text}"
+        error_message = response.json().get('message', 'Unknown error')
+        error_code = response.json().get('subCode', 'No subcode')
+        logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
+        return f"Error generating payment link: {error_message} (subCode: {error_code})"
 
 # /pay command handler
 async def pay(update: Update, context: CallbackContext) -> None:
