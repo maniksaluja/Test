@@ -1,46 +1,72 @@
 import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler
-from telegram.error import NetworkError
-import time
+from telegram.ext import Updater, CommandHandler, CallbackContext
+import requests
+import json
 
-# Enable logging for better debugging
+# Replace with your bot token
+bot_token = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
+
+# Cashfree API credentials
+app_id = '73553954db925af2b456a26e07935537'
+secret_key = 'cfsk_ma_prod_a137f4b96e800e1356e2a4476b6bea75_82b9f03e'
+
+# Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Command handler for /pay
-async def pay(update: Update, context):
-    try:
-        # Example payment link (Replace with your actual dynamic payment link logic)
-        payment_link = "https://your-payment-link"  # Change this to your payment link or dynamic generation
-        await update.message.reply_text(f"Here is your payment link: {payment_link}")
-    except NetworkError as e:
-        # Handle network issues like Bad Gateway
-        logger.error(f"Network Error: {str(e)}")
-        await update.message.reply_text("Network issue, please try again later.")
-    except Exception as e:
-        # Catch all other exceptions
-        logger.error(f"Error while handling /pay: {str(e)}")
-        await update.message.reply_text("Sorry, something went wrong!")
+# Create payment link using Cashfree API
+def create_payment_link(amount, order_id):
+    url = 'https://api.cashfree.com/api/v2/cft/payment-links'
 
-# Retry mechanism for the bot in case of network issues
-def start_bot():
-    try:
-        # Replace with your new bot token
-        application = Application.builder().token("7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0").build()
+    headers = {
+        'x-client-id': app_id,
+        'x-client-secret': secret_key,
+        'Content-Type': 'application/json'
+    }
 
-        # Add the /pay command handler
-        pay_handler = CommandHandler('pay', pay)
-        application.add_handler(pay_handler)
+    payload = {
+        "order_id": order_id,
+        "order_amount": amount,
+        "order_currency": "INR",
+        "order_note": "Payment for order " + order_id,
+        "customer_email": "customer@example.com",
+        "customer_phone": "9999999999"
+    }
 
-        # Start polling for updates
-        application.run_polling()
-    except NetworkError:
-        # If network issue occurs, retry after a delay
-        logger.error("Network error occurred, retrying...")
-        time.sleep(5)  # Retry after 5 seconds
-        start_bot()
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        payment_link = response.json()['payment_link']
+        return payment_link
+    else:
+        return f"Error generating payment link: {response.text}"
+
+# /pay command handler
+def pay(update: Update, context: CallbackContext) -> None:
+    order_id = "order12345"  # Generate a unique order ID or get from context
+    amount = 2  # Amount in INR
+
+    # Generate payment link
+    payment_link = create_payment_link(amount, order_id)
+
+    # Send the payment link to the user
+    update.message.reply_text(f"Here is your payment link: {payment_link}")
+
+# Main function to start the bot
+def main():
+    # Create the Updater and pass it your bot's token
+    updater = Updater(bot_token, use_context=True)
+
+    # Register the /pay command handler
+    updater.dispatcher.add_handler(CommandHandler('pay', pay))
+
+    # Start the Bot
+    updater.start_polling()
+
+    # Run the bot until you send a signal to stop it
+    updater.idle()
 
 if __name__ == '__main__':
-    start_bot()
+    main()
