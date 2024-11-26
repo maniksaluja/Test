@@ -4,11 +4,8 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 
 # Cashfree API credentials
-app_id = '73553954db925af2b456a26e07935537'
-secret_key = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'
-
-# Telegram Bot Token (your bot token here)
-bot_token = '7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0'  # <-- Your Bot Token
+app_id = '73553954db925af2b456a26e07935537'  # Replace with your Client ID
+secret_key = 'cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c'  # Replace with your Secret Key
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -35,10 +32,13 @@ def create_payment_link(amount, order_id):
         "link_expiry_time": 1200  # Expiry time (20 minutes)
     }
 
+    # Log the request for debugging
     logger.debug(f"Request Payload: {payload}")
 
+    # Send the request to Cashfree API
     response = requests.post(url, headers=headers, json=payload)
 
+    # Log response for debugging
     logger.debug(f"Response Status Code: {response.status_code}")
     logger.debug(f"Response Text: {response.text}")
 
@@ -51,6 +51,7 @@ def create_payment_link(amount, order_id):
         else:
             return f"Error: Payment link not found in response: {response_data}"
     else:
+        # Log detailed error information
         error_message = response.json().get('message', 'Unknown error')
         error_code = response.json().get('subCode', 'No subcode')
         logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
@@ -70,7 +71,7 @@ async def pay(update: Update, context: CallbackContext) -> None:
 # Main function to start the bot
 def main():
     # Create the Application and pass it your bot's token
-    application = Application.builder().token(bot_token).build()
+    application = Application.builder().token("7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0").build()
 
     # Register the /pay command handler
     application.add_handler(CommandHandler('pay', pay))
