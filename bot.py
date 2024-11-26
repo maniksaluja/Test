@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 import datetime
 import requests
 
@@ -68,15 +68,14 @@ async def generate_payment_link(update: Update, context: CallbackContext) -> Non
 
 async def main() -> None:
     """Start the bot."""
-    updater = Updater(BOT_TOKEN, use_context=True)
+    application = Application.builder().token(BOT_TOKEN).build()
 
     # Register Handlers
-    updater.dispatcher.add_handler(CommandHandler("start", start))
-    updater.dispatcher.add_handler(CommandHandler("pay", generate_payment_link))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("pay", generate_payment_link))
 
     # Start the Bot
-    updater.start_polling()
-    updater.idle()
+    await application.run_polling()
 
 
 if __name__ == "__main__":
