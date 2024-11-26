@@ -11,14 +11,14 @@ ENVIRONMENT = "PROD"  # Use "TEST" for sandbox environment
 # Telegram Bot Token
 BOT_TOKEN = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
 
-def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: CallbackContext) -> None:
     """Handles /start command."""
-    update.message.reply_text(
+    await update.message.reply_text(
         "Welcome! Use /pay to generate a payment link for INR 2."
     )
 
 
-def generate_payment_link(update: Update, context: CallbackContext) -> None:
+async def generate_payment_link(update: Update, context: CallbackContext) -> None:
     """Generates a Cashfree payment link."""
     user = update.message.from_user
 
@@ -56,13 +56,13 @@ def generate_payment_link(update: Update, context: CallbackContext) -> None:
         response = requests.post(url, json=payload, headers=headers)
         if response.status_code == 200:
             payment_link = response.json().get("data", {}).get("link_url", "")
-            update.message.reply_text(
+            await update.message.reply_text(
                 f"Here is your payment link (valid for 20 minutes):\n{payment_link}"
             )
         else:
-            update.message.reply_text(f"Error: {response.text}")
+            await update.message.reply_text(f"Error: {response.text}")
     except Exception as e:
-        update.message.reply_text(f"Error: {str(e)}")
+        await update.message.reply_text(f"Error: {str(e)}")
 
 
 def main() -> None:
