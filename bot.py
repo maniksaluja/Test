@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 import datetime
 import requests
+import asyncio
 
 # Cashfree Credentials
 APP_ID = "73553954db925af2b456a26e07935537"
@@ -79,5 +80,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
