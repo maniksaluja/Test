@@ -1,9 +1,7 @@
 import logging
+import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
-import requests
-import json
-from datetime import datetime, timedelta
 
 # Replace with your bot token
 bot_token = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
@@ -27,24 +25,24 @@ def create_payment_link(amount, order_id):
         'Content-Type': 'application/json'
     }
 
-    # Set expiry time to 20 minutes from now
-    expiry_time = (datetime.utcnow() + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
-
     payload = {
         "order_id": order_id,
         "order_amount": amount,
         "order_currency": "INR",
-        "order_note": f"Payment for order {order_id}",
+        "order_note": "Payment for order " + order_id,
         "customer_email": "customer@example.com",
         "customer_phone": "9999999999",
-        "expire_at": expiry_time  # Link expiry time
+        "link_expiry_time": 1200  # Set expiration to 20 minutes (1200 seconds)
     }
 
     response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code == 200:
-        payment_link = response.json()['payment_link']
-        return payment_link
+        payment_link = response.json().get('payment_link', '')
+        if payment_link:
+            return payment_link
+        else:
+            return f"Error: {response.json()}"
     else:
         return f"Error generating payment link: {response.text}"
 
