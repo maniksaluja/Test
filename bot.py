@@ -1,10 +1,25 @@
+from flask import Flask, request, jsonify
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 import requests
+import threading
+
+# Telegram Bot Token
+BOT_TOKEN = "7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI"
 
 # Cashfree Credentials
 CASHFREE_APP_ID = "73553954db925af2b456a26e07935537"
 CASHFREE_SECRET_KEY = "cfsk_ma_prod_2d76755985f4b26b8a93f770157c6514_167eab6c"
+
+# Flask App for Webhook
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.json
+    print("Webhook Data Received:", data)  # For debugging
+    # Respond to Cashfree webhook
+    return jsonify({"status": "success"}), 200
 
 # Function to Generate Payment Link
 def generate_payment_link(order_id, amount, email, phone):
@@ -33,18 +48,16 @@ def generate_payment_link(order_id, amount, email, phone):
 
 # Telegram Bot Commands
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("Welcome! Use /pay <amount> to make a payment.")
+    update.message.reply_text("Welcome to the bot! Use /pay <amount> to create a payment link.")
 
 def pay(update: Update, context: CallbackContext):
     try:
-        # Parse amount from user message
         amount = float(context.args[0])
         user_id = update.message.from_user.id
-        email = "user@example.com"  # Replace with dynamic user email if needed
-        phone = "9876543210"  # Replace with dynamic user phone if needed
-        order_id = f"Order{user_id}"  # Unique order ID per user
+        email = "user@example.com"  # Default email, can be dynamic
+        phone = "8708366003"  # Default phone, can be dynamic
+        order_id = f"Order{user_id}"
 
-        # Generate Payment Link
         payment_link = generate_payment_link(order_id, amount, email, phone)
         if payment_link:
             update.message.reply_text(f"Pay using this link: {payment_link}")
@@ -53,11 +66,19 @@ def pay(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text("Usage: /pay <amount>")
 
-# Bot Setup
-updater = Updater("7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI")
-updater.dispatcher.add_handler(CommandHandler("start", start))
-updater.dispatcher.add_handler(CommandHandler("pay", pay))
+# Start Telegram Bot in a Thread
+def start_telegram_bot():
+    updater = Updater(BOT_TOKEN)
+    updater.dispatcher.add_handler(CommandHandler("start", start))
+    updater.dispatcher.add_handler(CommandHandler("pay", pay))
+    updater.start_polling()
+    updater.idle()
 
-# Start Bot
-updater.start_polling()
-updater.idle()
+# Main Script
+if __name__ == "__main__":
+    # Run Telegram bot in a separate thread
+    bot_thread = threading.Thread(target=start_telegram_bot)
+    bot_thread.start()
+
+    # Run Flask app for webhook
+    app.run(host="0.0.0.0", port=5000)
