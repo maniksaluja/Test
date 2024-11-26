@@ -37,24 +37,28 @@ def create_payment_link(amount, order_id):
 
     logger.debug(f"Request Payload: {payload}")  # Log the request payload for debugging
 
-    response = requests.post(url, headers=headers, json=payload)
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        logger.debug(f"Response Status Code: {response.status_code}")  # Log the status code
+        logger.debug(f"Response Text: {response.text}")  # Log the raw response text
 
-    logger.debug(f"Response Status Code: {response.status_code}")  # Log the status code
-    logger.debug(f"Response Text: {response.text}")  # Log the raw response text
-
-    if response.status_code == 200:
-        response_data = response.json()
-        logger.debug(f"Response JSON: {response_data}")  # Log the JSON response
-        payment_link = response_data.get('payment_link', None)
-        if payment_link:
-            return payment_link
+        if response.status_code == 200:
+            response_data = response.json()
+            logger.debug(f"Response JSON: {response_data}")  # Log the JSON response
+            payment_link = response_data.get('payment_link', None)
+            if payment_link:
+                return payment_link
+            else:
+                return f"Error: Payment link not found in response: {response_data}"
         else:
-            return f"Error: Payment link not found in response: {response_data}"
-    else:
-        error_message = response.json().get('message', 'Unknown error')
-        error_code = response.json().get('subCode', 'No subcode')
-        logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
-        return f"Error generating payment link: {error_message} (subCode: {error_code})"
+            error_message = response.json().get('message', 'Unknown error')
+            error_code = response.json().get('subCode', 'No subcode')
+            logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
+            return f"Error generating payment link: {error_message} (subCode: {error_code})"
+
+    except Exception as e:
+        logger.error(f"Exception occurred: {str(e)}")
+        return f"An error occurred: {str(e)}"
 
 # /pay command handler
 async def pay(update: Update, context: CallbackContext) -> None:
