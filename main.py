@@ -1,70 +1,70 @@
 import logging
+import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
-import requests
-import json
-import time
+
+# Cashfree API details
+CASHFREE_APP_ID = 'TEST1027828340bdc693b933350cd9b738287201'
+CASHFREE_SECRET_KEY = 'cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13'
+
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Cashfree API credentials (Test)
-api_key = 'TEST1027828340bdc693b933350cd9b738287201'  # Cashfree AppID
-api_secret = 'cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13'  # Cashfree Secret Key
-api_url = 'https://testapi.cashfree.com/api/v2/cft/payment-links'
-
-# Function to generate payment link
+# Function to generate dynamic payment link
 def generate_payment_link():
-    payment_data = {
-        "order_id": "order_" + str(int(time.time())),  # Unique order ID
-        "order_amount": 2,  # ₹2
-        "order_currency": "INR",
-        "order_note": "Payment for testing",
-        "customer_email": "customer@example.com",  # Change as needed
-        "customer_phone": "9999999999",  # Change as needed
-        "notify_url": "https://www.yourwebsite.com/notify",  # Optional
-        "redirect_url": "https://www.yourwebsite.com/success",  # Success URL
-        "callback_url": "https://www.yourwebsite.com/callback"  # Optional callback URL
-    }
-
+    url = "https://test.cashfree.com/api/v2/cftoken/order"
+    
     headers = {
-        'Content-Type': 'application/json',
-        'x-client-id': api_key,
-        'x-client-secret': api_secret,
+        "Content-Type": "application/json",
     }
 
-    # Make the POST request to Cashfree API
-    response = requests.post(api_url, headers=headers, data=json.dumps(payment_data))
-    response_data = response.json()
+    data = {
+        "appId": CASHFREE_APP_ID,
+        "secretKey": CASHFREE_SECRET_KEY,
+        "orderAmount": "2",  # Set payment amount
+        "orderCurrency": "INR",
+        "orderNote": "Test payment",
+        "customerPhone": "1234567890",  # Dummy phone number
+        "customerEmail": "test@example.com",  # Dummy email
+        "orderId": "order_001",  # Unique order ID
+    }
 
-    if response_data['status'] == 'OK':
-        return response_data['payment_link']
+    response = requests.post(url, json=data, headers=headers)
+    
+    if response.status_code == 200:
+        payment_data = response.json()
+        if payment_data.get('status') == 'OK':
+            payment_link = payment_data['paymentLink']
+            return payment_link
+        else:
+            return "Error: " + payment_data.get('message', 'Unknown error')
     else:
-        return "Error generating payment link: " + response_data['message']
+        return "Error: Unable to generate payment link"
 
-# Command function for '/pay'
-def pay(update: Update, context: CallbackContext):
+# Command handler to trigger payment link generation
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Welcome! Type /pay to generate a payment link.')
+
+def pay(update: Update, context: CallbackContext) -> None:
+    # Generate the dynamic payment link
     payment_link = generate_payment_link()
-    update.message.reply_text(f"Your payment link: {payment_link}")
+    update.message.reply_text(f"Here is your payment link: {payment_link}")
 
-# Command function for '/start'
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text('Welcome! Use /pay to generate a payment link.')
-
-# Main function to run the bot
 def main():
-    # Telegram Bot API token
-    bot_token = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'  # Your Bot Token
-    updater = Updater(bot_token, use_context=True)
+    # Initialize the Updater
+    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
 
-    # Add command handlers
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CommandHandler('pay', pay))
+    # Register command handlers
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("pay", pay))
 
     # Start the Bot
     updater.start_polling()
