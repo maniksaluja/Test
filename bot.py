@@ -1,7 +1,7 @@
 import asyncio
 from flask import Flask, request, jsonify
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, ContextTypes
 import requests
 import threading
 
@@ -51,10 +51,10 @@ def generate_payment_link(order_id, amount, email, phone):
         return None
 
 # Telegram Bot Commands
-async def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Welcome to the bot! Use /pay <amount> to create a payment link.")
 
-async def pay(update: Update, context: CallbackContext):
+async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         amount = float(context.args[0])
         user_id = update.message.from_user.id
