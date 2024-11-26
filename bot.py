@@ -39,6 +39,8 @@ def create_payment_link(amount, order_id):
 
     try:
         response = requests.post(url, headers=headers, json=payload)
+        
+        # Log the full response details for further debugging
         logger.debug(f"Response Status Code: {response.status_code}")  # Log the status code
         logger.debug(f"Response Text: {response.text}")  # Log the raw response text
 
@@ -51,8 +53,10 @@ def create_payment_link(amount, order_id):
             else:
                 return f"Error: Payment link not found in response: {response_data}"
         else:
-            error_message = response.json().get('message', 'Unknown error')
-            error_code = response.json().get('subCode', 'No subcode')
+            # Log the error message and status code
+            response_data = response.json() if response.content else {}
+            error_message = response_data.get('message', 'Unknown error')
+            error_code = response_data.get('subCode', 'No subcode')
             logger.error(f"Error generating payment link: {error_message} (subCode: {error_code})")
             return f"Error generating payment link: {error_message} (subCode: {error_code})"
 
