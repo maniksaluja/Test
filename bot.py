@@ -24,7 +24,7 @@ app = Flask(__name__)
 
 # Asynchronously set webhook
 async def set_webhook():
-    await bot.set_webhook(url=f'https://your-vps-ip-or-domain/{TELEGRAM_API_KEY}')
+    await bot.set_webhook(url=f'https://154.12.228.186/{TELEGRAM_API_KEY}')
 
 # Run the webhook function
 loop = asyncio.get_event_loop()
@@ -83,7 +83,7 @@ def webhook():
 # Start the Flask app to listen for requests
 if __name__ == "__main__":
     # Set webhook with Telegram bot
-    bot.set_webhook(url=f'https://your-vps-ip-or-domain/{TELEGRAM_API_KEY}')
+    bot.set_webhook(url=f'https://154.12.228.186/{TELEGRAM_API_KEY}')
 
     # Run the Flask app
     app.run(host='0.0.0.0', port=5000)
