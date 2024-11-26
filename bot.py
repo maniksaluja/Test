@@ -16,13 +16,41 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Generate token from Cashfree API
+def generate_token():
+    url = 'https://api.cashfree.com/api/v2/cftoken/order'
+
+    headers = {
+        'x-client-id': app_id,
+        'x-client-secret': secret_key,
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        "order_id": "order12345",  # Unique order ID
+        "order_amount": 2.0,       # Amount in INR
+        "order_currency": "INR"
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        return response.json()['cftoken']  # Return the token for creating payment links
+    else:
+        return f"Error generating token: {response.text}"
+
 # Create payment link using Cashfree API
 def create_payment_link(amount, order_id):
+    token = generate_token()
+    if "Error" in token:
+        return token  # Return the error message if token generation fails
+
     url = 'https://api.cashfree.com/api/v2/cft/payment-links'
 
     headers = {
         'x-client-id': app_id,
         'x-client-secret': secret_key,
+        'x-cftoken': token,  # Use the token here
         'Content-Type': 'application/json'
     }
 
