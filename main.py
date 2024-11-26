@@ -1,19 +1,12 @@
-import logging
+import json
 import requests
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from flask import Flask, jsonify
 
 # Cashfree API details
 CASHFREE_APP_ID = 'TEST1027828340bdc693b933350cd9b738287201'
 CASHFREE_SECRET_KEY = 'cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13'
 
-# Telegram Bot Token
-TELEGRAM_BOT_TOKEN = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
-
-# Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+app = Flask(__name__)
 
 # Function to generate dynamic payment link
 def generate_payment_link():
@@ -46,29 +39,17 @@ def generate_payment_link():
     else:
         return "Error: Unable to generate payment link"
 
-# Command handler to trigger payment link generation
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text('Welcome! Type /pay to generate a payment link.')
-
-def pay(update: Update, context: CallbackContext) -> None:
+# Route to trigger payment link generation
+@app.route('/pay', methods=['GET'])
+def pay():
     # Generate the dynamic payment link
     payment_link = generate_payment_link()
-    update.message.reply_text(f"Here is your payment link: {payment_link}")
+    return jsonify({'payment_link': payment_link})
 
-def main():
-    # Initialize the Updater
-    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
+# Home route
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({'message': 'Welcome to Payment Link Generator! Use /pay to generate payment link.'})
 
-    # Get the dispatcher to register handlers
-    dispatcher = updater.dispatcher
-
-    # Register command handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("pay", pay))
-
-    # Start the Bot
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    app.run(debug=True)
