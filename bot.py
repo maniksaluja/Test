@@ -3,6 +3,32 @@ import telegram
 from flask import Flask, request
 import logging
 
+import asyncio
+from telegram import Bot
+
+# Replace with your actual Telegram API Key
+TELEGRAM_API_KEY = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
+
+bot = Bot(token=TELEGRAM_API_KEY)
+
+# Asynchronously set webhook
+async def set_webhook():
+    await bot.set_webhook(url=f'https://your-vps-ip-or-domain/{TELEGRAM_API_KEY}')
+   
+# Run the webhook function
+loop = asyncio.get_event_loop()
+loop.run_until_complete(set_webhook())
+
+# Flask server setup (if required)
+from flask import Flask, request
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Telegram Bot Webhook is Set Successfully!'
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
 # Flask app setup
 app = Flask(__name__)
 
