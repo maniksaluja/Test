@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
-from cashfree_pg import CashfreePG
 import datetime
+import requests
 
 # Cashfree Credentials
 APP_ID = "73553954db925af2b456a26e07935537"
@@ -10,10 +10,6 @@ ENVIRONMENT = "PROD"  # Use "TEST" for sandbox environment
 
 # Telegram Bot Token
 BOT_TOKEN = "7341469021:AAFKFWX__rS5Et-Qco1ATpeA7EU92js3Pc0"
-
-# Initialize Cashfree
-cashfree_pg = CashfreePG(app_id=APP_ID, secret_key=SECRET_KEY, environment=ENVIRONMENT)
-
 
 def start(update: Update, context: CallbackContext) -> None:
     """Handles /start command."""
@@ -48,17 +44,23 @@ def generate_payment_link(update: Update, context: CallbackContext) -> None:
     }
 
     # Create Payment Link
+    url = "https://api.cashfree.com/pg/links"
+    headers = {
+        "Content-Type": "application/json",
+        "x-client-id": APP_ID,
+        "x-client-secret": SECRET_KEY,
+    }
+
     try:
-        response = cashfree_pg.payment_links.create(payload)
-        if response["status"] == "OK":
-            payment_link = response["data"]["link_url"]
+        # Make the API request to Cashfree
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            payment_link = response.json().get("data", {}).get("link_url", "")
             update.message.reply_text(
                 f"Here is your payment link (valid for 20 minutes):\n{payment_link}"
             )
         else:
-            update.message.reply_text(
-                f"Failed to generate payment link. Error: {response['message']}"
-            )
+            update.message.reply_text(f"Error: {response.text}")
     except Exception as e:
         update.message.reply_text(f"Error: {str(e)}")
 
