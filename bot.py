@@ -1,93 +1,73 @@
 import requests
-import telegram
-import logging
-import asyncio
-from flask import Flask, request
-from telegram import Bot
 import json
+import time
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
-# Replace with your actual Telegram API Key
-TELEGRAM_API_KEY = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'
-bot = Bot(token=TELEGRAM_API_KEY)
+# Cashfree API details (replace with actual details)
+CASHFREE_MERCHANT_ID = 'TEST1027828340bdc693b933350cd9b738287201'  # Your AppID
+CASHFREE_SECRET_KEY = 'cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13'  # Your Secret Key
 
-# Cashfree API details
-CASHFREE_APP_ID = "TEST1027828340bdc693b933350cd9b738287201"
-CASHFREE_SECRET_KEY = "cfsk_ma_test_ee2923adec8914232ae79d9826252885_d6faea13"
-CASHFREE_API_URL = "https://test.cashfree.com/api/v2/cftoken/order"
+# Telegram bot token (replace with actual token)
+TELEGRAM_BOT_TOKEN = '7057865734:AAEBB12yJESX5sZ278UYumyectVPx3PuzpI'  # Your Bot Token
 
-# Enable logging for debugging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Flask app setup
-app = Flask(__name__)
-
-# Function to set webhook asynchronously
-async def set_webhook():
-    await bot.set_webhook(url=f'https://154.12.228.186/{TELEGRAM_API_KEY}')
-
-# Run the webhook function
-def start_webhook():
-    asyncio.run(set_webhook())
-
-# Function to create dynamic payment link
-def create_payment_link(amount):
+# Cashfree payment link creation function
+def create_payment_link(amount, order_id):
+    url = "https://api.cashfree.com/api/v2/cashfree/payment-links"
+    
     headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        "Content-Type": "application/json",
+        "x-client-id": CASHFREE_MERCHANT_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY
     }
 
     data = {
+        "order_id": order_id,
         "order_amount": amount,
         "order_currency": "INR",
-        "order_id": "order123",  # Unique order ID
         "customer_details": {
-            "customer_id": "customer123",
-            "customer_email": "test@example.com",
-            "customer_phone": "9876543210"
+            "customer_email": "customer@example.com",
+            "customer_phone": "1234567890"
         },
-        "return_url": "https://yourdomain.com/return",  # You can use any placeholder URL here
-        "notify_url": "https://yourdomain.com/notify"  # Placeholder URL
+        "payment_link_notify_url": "http://your-website.com/payment-notification"  # Optional: for payment success/failure notifications
     }
 
-    response = requests.post(CASHFREE_API_URL, json=data, headers=headers, auth=(CASHFREE_APP_ID, CASHFREE_SECRET_KEY))
-
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    
     if response.status_code == 200:
-        result = response.json()
-        payment_link = result.get("payment_link", "")
-        return payment_link
+        response_data = response.json()
+        if response_data.get("status") == "OK":
+            return response_data["payment_link_url"]
+        else:
+            return "Error: " + response_data.get("message", "Unable to create payment link")
     else:
-        return "Error generating payment link"
+        return f"Error: {response.status_code}"
 
-# Function to handle /pay command
-@app.route(f'/{TELEGRAM_API_KEY}', methods=['POST'])
-def webhook():
-    json_str = request.get_data().decode("UTF-8")
-    update = telegram.Update.de_json(json.loads(json_str), bot)
+# Function to handle the /pay command
+def pay(update: Update, context: CallbackContext):
+    # Generate new order ID (could be dynamic or random)
+    order_id = "order_" + str(int(time.time()))
+    
+    # Generate payment link (replace with your amount)
+    amount = 100  # Example amount in INR
+    payment_link = create_payment_link(amount, order_id)
+    
+    # Send the payment link to the user
+    update.message.reply_text(f"Here is your payment link: {payment_link}")
 
-    # Check if the message is a /pay command
-    if update.message.text == "/pay":
-        try:
-            amount = 100  # Example amount
-            payment_link = create_payment_link(amount)
+# Main function to run the bot
+def main():
+    # Initialize the Updater with your bot token
+    updater = Updater(token=TELEGRAM_BOT_TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+    
+    # Add /pay command handler
+    pay_handler = CommandHandler('pay', pay)
+    dispatcher.add_handler(pay_handler)
+    
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
 
-            if payment_link:
-                update.message.reply_text(f"Your payment link: {payment_link}")
-            else:
-                update.message.reply_text("Failed to generate payment link.")
-        except Exception as e:
-            logger.error(f"Error in /pay command: {e}")
-            update.message.reply_text(f"Error: {e}")
-    return "OK"
-
-# Root route to check if server is up
-@app.route('/')
-def hello_world():
-    return 'Telegram Bot Webhook is Set Successfully!'
-
-if __name__ == "__main__":
-    # Set webhook with Telegram bot
-    start_webhook()
-
-    # Run the Flask app
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == '__main__':
+    main()
