@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext
 import datetime
 import requests
 
@@ -40,7 +40,8 @@ async def generate_payment_link(update: Update, context: CallbackContext) -> Non
         "order_id": order_id,
         "order_amount": order_amount,
         "order_currency": "INR",
-        "order_expiry_time": expiry_time
+        "order_expiry_time": expiry_time,
+        "version": "2023-08-01"  # Added version parameter
     }
 
     # Create Payment Link
@@ -65,17 +66,19 @@ async def generate_payment_link(update: Update, context: CallbackContext) -> Non
         await update.message.reply_text(f"Error: {str(e)}")
 
 
-def main() -> None:
+async def main() -> None:
     """Start the bot."""
-    application = Application.builder().token(BOT_TOKEN).build()
+    updater = Updater(BOT_TOKEN, use_context=True)
 
     # Register Handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("pay", generate_payment_link))
+    updater.dispatcher.add_handler(CommandHandler("start", start))
+    updater.dispatcher.add_handler(CommandHandler("pay", generate_payment_link))
 
     # Start the Bot
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
