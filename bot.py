@@ -31,7 +31,7 @@ def create_payment_link(amount, order_id):
         "order_currency": "INR",
         "order_note": "Payment for order " + order_id,
         "customer_email": "maniksaluja2004@gmail.com",  # Replace with actual user email
-        "customer_phone": "8708366003",  # Replace with actual user phone
+        "customer_phone": "8709366003",  # Replace with actual user phone
         "link_expiry_time": 1200  # Set expiration to 20 minutes (1200 seconds)
     }
 
