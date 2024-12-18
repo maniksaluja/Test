@@ -95,11 +95,16 @@ async def task():
         subs = await get_all_subs()
         for x in subs:
             if int(time.time() - subs[x]) >= exp:
-                await del_sub(x)
-                await update_privileges(x, False, False, False, False) 
+                await del_sub(x)  # This will remove user from subscription DB
+                await update_privileges(x, False, False, False, False)  # Disable privileges
+
+                # Now delete user data from MongoDB
+                await tryer(db.paid.delete_one, {'user_id': x})  # Delete from 'paid' collection
+                await tryer(db.privileges.delete_one, {'user_id': x})  # Delete from 'privileges' collection
+
                 mention = (await tryer(app.get_users, x)).mention
                 await tryer(app.send_photo, x, SU_IMAGE, caption=EXPIRE_TEXT.format(mention, mention), reply_markup=renew)
-        await asyncio.sleep(exp/1000)
+        await asyncio.sleep(exp/1000)  # Delay for the next check
         
+# Start the task
 asyncio.create_task(task())
-                
